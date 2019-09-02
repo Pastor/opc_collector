@@ -18,44 +18,8 @@ typedef struct {
 #define Point_padding_y offsetof(Point,y) - offsetof(Point,x) - sizeof(UA_Float)
 #define Point_padding_z offsetof(Point,z) - offsetof(Point,y) - sizeof(UA_Float)
 
-UA_DataTypeMember Point_members[3] = {
-        /* x */
-        {
-                UA_TYPENAME("x") /* .memberName */
-                UA_TYPES_FLOAT,  /* .memberTypeIndex, points into UA_TYPES since namespaceZero is true */
-                0,               /* .padding */
-                true,            /* .namespaceZero, see .memberTypeIndex */
-                false            /* .isArray */
-        },
-
-        /* y */
-        {
-                UA_TYPENAME("y")
-                UA_TYPES_FLOAT, Point_padding_y, true, false
-        },
-
-        /* z */
-        {
-                UA_TYPENAME("z")
-                UA_TYPES_FLOAT, Point_padding_z, true, false
-        }
-};
-
-const UA_DataType PointType = {
-        UA_TYPENAME("Point")             /* .typeName */
-        {1, UA_NODEIDTYPE_NUMERIC, {4242}}, /* .typeId */
-        sizeof(Point),                   /* .memSize */
-        0,                               /* .typeIndex, in the array of custom types */
-        UA_DATATYPEKIND_STRUCTURE,       /* .typeKind */
-        true,                            /* .pointerFree */
-        false,                           /* .overlayable (depends on endianness and
-                                         the absence of padding) */
-        3,                               /* .membersSize */
-        0,                               /* .binaryEncodingId, the numeric
-                                         identifier used on the wire (the
-                                         namespaceindex is from .typeId) */
-        Point_members
-};
+extern UA_DataTypeMember Point_members[3];
+extern const UA_DataType PointType;
 
 bool register_basic_types(UA_Server *server);
 
