@@ -8,5 +8,5 @@ if (CMAKE_COMPILER_IS_GNUCXX)
     set_target_properties(tests_base PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations -g -fPIC")
 endif (CMAKE_COMPILER_IS_GNUCXX)
 
-target_link_libraries(tests_base PUBLIC Collector::HidApi open62541 gtest gtest_main)
+target_link_libraries(tests_base PUBLIC Collector::HidApi open62541 gtest)
 add_library(Collector::Test ALIAS tests_base)

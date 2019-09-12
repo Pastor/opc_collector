@@ -8,18 +8,37 @@ extern "C" {
 #include <open62541/types_generated.h>
 #include <open62541/server.h>
 
+#define UA_DEVICE_TYPE_UNKNOWN    0
+#define UA_DEVICE_TYPE_HID        1
+
+#define UA_EVENT_PROVIDER_TYPE_LOCAL  0
+#define UA_EVENT_PROVIDER_TYPE_REMOTE 1
+
 typedef struct {
-    UA_Float x;
-    UA_Float y;
-    UA_Float z;
-} Point;
+    UA_Int32   type;
+    UA_Int32   vid;
+    UA_Int32   pid;
+    UA_String  serial;
+    UA_String  product;
+    UA_Int32   firmware;
+} DeviceInformation;
 
-/* The datatype description for the Point datatype */
-#define Point_padding_y offsetof(Point,y) - offsetof(Point,x) - sizeof(UA_Float)
-#define Point_padding_z offsetof(Point,z) - offsetof(Point,y) - sizeof(UA_Float)
+extern UA_DataTypeMember DeviceInformation_members[6];
+extern const UA_DataType DeviceInformationType;
 
-extern UA_DataTypeMember Point_members[3];
-extern const UA_DataType PointType;
+typedef struct {
+    UA_Int32   battery;
+    UA_Int32   button;
+    UA_Int32   group;
+    UA_Int32   device;
+    UA_Int32   provider_type;
+    UA_Int32   timeout;
+    UA_String  provider;
+    UA_String  enter;
+} SignalEvent;
+
+extern UA_DataTypeMember SignalEvent_members[8];
+extern const UA_DataType SignalEventType;
 
 bool register_basic_types(UA_Server *server);
 

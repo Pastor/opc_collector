@@ -35,6 +35,7 @@ int main(int argc, char* argv[])
 	wchar_t wstr[MAX_STR];
 	hid_device *handle;
 	int i;
+	int c;
 
 #ifdef WIN32
 	UNREFERENCED_PARAMETER(argc);
@@ -69,7 +70,7 @@ int main(int argc, char* argv[])
 	// Open the device using the VID, PID,
 	// and optionally the Serial number.
 	////handle = hid_open(0x4d8, 0x3f, L"12345");
-	handle = hid_open(0x4d8, 0x3f, NULL);
+	handle = hid_open(0x10c4, 0x8468, NULL);
 	if (!handle) {
 		printf("unable to open device\n");
  		return 1;
@@ -162,7 +163,8 @@ int main(int argc, char* argv[])
 	// non-blocking by the call to hid_set_nonblocking() above.
 	// This loop demonstrates the non-blocking nature of hid_read().
 	res = 0;
-	while (res == 0) {
+	c = 0;
+	while (res == 0 && c++ < 10) {
 		res = hid_read(handle, buf, sizeof(buf));
 		if (res == 0)
 			printf("waiting...\n");
@@ -185,7 +187,7 @@ int main(int argc, char* argv[])
 
 	/* Free static HIDAPI objects. */
 	hid_exit();
-
+    fflush(stdout);
 #ifdef WIN32
 	system("pause");
 #endif

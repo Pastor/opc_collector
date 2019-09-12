@@ -11,6 +11,7 @@ struct Event {
 };
 
 #else
+
 #include <unistd.h>
 #include <time.h>
 #include <pthread.h>
@@ -22,13 +23,43 @@ struct Event {
 
 #endif
 
+void *thread_create(void *(*cb)(void *), void *args, bool detached) {
+    if (cb != NULL) {
+#if defined(_MSC_VER)
+        DestroyThread((HANDLE)handle);
+#else
+        pthread_t *handle = malloc(sizeof(pthread_t));
+        if (pthread_create(handle, NULL, cb, args) == 0) {
+            if (detached)
+                pthread_detach(*handle);
+            return handle;
+        }
+        free(handle);
+#endif
+    }
+    return NULL;
+}
+
+void thread_destroy(void *handle) {
+    if (handle != NULL) {
+#if defined(_MSC_VER)
+        DestroyThread((HANDLE)handle);
+#else
+        if (0 != pthread_cancel(*(pthread_t *)handle)) {
+            pthread_kill(*(pthread_t *)handle, SIGABRT);
+        }
+        free(handle);
+#endif
+    }
+}
+
 void
 u_delay(long milliseconds) {
 
 #if defined(_MSC_VER)
     Sleep(milliseconds);
 #else
-    usleep((useconds_t)(milliseconds * 1000));
+    usleep((useconds_t) (milliseconds * 1000));
 #endif
 }
 

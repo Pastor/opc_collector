@@ -31,6 +31,10 @@ void busy_unlock(volatile void *busy);
 
 void u_delay(long milliseconds);
 
+void *thread_create(void *(*cb)(void *), void *args, bool detached);
+
+void thread_destroy(void *handle);
+
 #if defined(__cplusplus)
 }
 #endif

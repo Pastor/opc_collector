@@ -10,5 +10,4 @@
 #endif
 #include <cstdlib>
 
-
 #endif //OPC_COLLECTOR_TESTS_CORE_BASE_HXX

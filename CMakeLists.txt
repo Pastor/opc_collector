@@ -62,10 +62,12 @@ include_directories(${CMAKE_BINARY_DIR})
 include_directories(3rdparty/hidapi)
 include_directories(3rdparty/open62541)
 include_directories(src_c/core)
+include_directories(src_c/default)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/3rdparty/hidapi)
 add_subdirectory(${CMAKE_SOURCE_DIR}/3rdparty/open62541)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src_c/core)
+add_subdirectory(${CMAKE_SOURCE_DIR}/src_c/default)
 enable_testing()
 
 if (BUILD_TESTING)
