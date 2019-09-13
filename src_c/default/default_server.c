@@ -27,7 +27,7 @@ static void *monitoring_loop(void *args) {
     };
     UA_ServerConfig *config = UA_Server_getConfig(_server);
     UA_ServerConfig_setMinimal(config, 6789, NULL);
-    register_basic_types(_server);
+    register_builtin_types(_server);
     monitoring_registration(_server);
     register_DeviceInformationType_Variable(_server, &gdi);
     if (UA_Server_run(_server, &_running) == UA_STATUSCODE_GOOD) {

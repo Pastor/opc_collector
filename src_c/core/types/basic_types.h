@@ -40,7 +40,7 @@ typedef struct {
 extern UA_DataTypeMember SignalEvent_members[8];
 extern const UA_DataType SignalEventType;
 
-bool register_basic_types(UA_Server *server);
+bool register_builtin_types(UA_Server *server);
 
 #if defined(__cplusplus)
 }

@@ -229,7 +229,7 @@ defineObjectTypes(UA_Server *server) {
 #endif
 
 
-bool register_basic_types(UA_Server *server) {
+bool register_builtin_types(UA_Server *server) {
     if (0 == server)
         return false;
 
@@ -245,5 +245,6 @@ bool register_basic_types(UA_Server *server) {
     register_DeviceInformationType(server);
     register_SignalEventType(server);
     defineObjectTypes(server);
+    return true;
 }
 
