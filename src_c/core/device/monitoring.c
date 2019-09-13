@@ -7,7 +7,14 @@
 
 static volatile bool monitoring_enabled = false;
 static volatile hid_device *handle = NULL;
+static volatile bool detected = false;
 static void *busy = NULL;
+
+static unsigned char buf[1024];
+static size_t buf_length = sizeof(buf);
+static size_t buf_read = 0;
+
+void monitoring_reset_device_information(UA_Server *server);
 
 bool monitoring_has_device() {
     return handle != NULL;
@@ -27,16 +34,26 @@ static void write_id_number(UA_Server *server, UA_NodeId id, UA_Int32 number) {
 
 static void
 monitoring_callback(UA_Server *server, void *data) {
-    static bool detected = false;
+    if (handle != NULL) {
+        int res = hid_read((hid_device *) handle, buf + buf_read, sizeof(buf));
+        if (res < 0) {
+            hid_close((hid_device *) handle);
+            handle = NULL;
+            monitoring_reset_device_information(server);
+        } else if (res > 0) {
+            buf_read = buf_read + res;
+            if (buf_read >= sizeof(buf)) {
+                UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Device buffer overflow");
+                buf_read = 0;
+            }
+        } else {
+            return;
+        }
+    }
     handle = hid_open(0x10c4, 0x8468, NULL);
     if (handle == NULL) {
         if (detected) {
-            write_id_number(server, DeviceType_DetectedDevice_USB_pid_id, 0);
-            write_id_number(server, DeviceType_DetectedDevice_USB_vid_id, 0);
-            write_id_string(server, DeviceType_DetectedDevice_manufacturer_id, UA_STRING("undefined"));
-            write_id_string(server, DeviceType_DetectedDevice_product_id, UA_STRING("undefined"));
-            write_id_string(server, DeviceType_DetectedDevice_serial_id, UA_STRING("undefined"));
-            UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Device lost");
+            monitoring_reset_device_information(server);
         }
     } else if (detected == false) {
         int res;
@@ -77,6 +94,15 @@ monitoring_callback(UA_Server *server, void *data) {
     detected = handle != NULL;
 }
 
+void monitoring_reset_device_information(UA_Server *server) {
+    write_id_number(server, DeviceType_DetectedDevice_USB_pid_id, 0);
+    write_id_number(server, DeviceType_DetectedDevice_USB_vid_id, 0);
+    write_id_string(server, DeviceType_DetectedDevice_manufacturer_id, UA_STRING("undefined"));
+    write_id_string(server, DeviceType_DetectedDevice_product_id, UA_STRING("undefined"));
+    write_id_string(server, DeviceType_DetectedDevice_serial_id, UA_STRING("undefined"));
+    UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Device lost");
+}
+
 bool monitoring_registration(UA_Server *server) {
     if (monitoring_enabled == false) {
         monitoring_enabled = hid_init() == 0 &&
@@ -84,5 +110,24 @@ bool monitoring_registration(UA_Server *server) {
                              == UA_STATUSCODE_GOOD;
     }
     return monitoring_enabled;
+}
+
+bool monitoring_send(UA_Server *server, const unsigned char *data, size_t data_length) {
+    int res;
+
+    if (handle == NULL)
+        return false;
+    res = hid_write((hid_device *) handle, data, data_length);
+    if (res < 0 || res != data_length) {
+        UA_LOG_ERROR(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Unable to write(). Error %ls",
+                     hid_error((hid_device *) handle));
+    }
+    return res == data_length;
+}
+
+bool monitoring_reset(UA_Server *server) {
+    handle = NULL;
+    detected = false;
+    return true;
 }
 
