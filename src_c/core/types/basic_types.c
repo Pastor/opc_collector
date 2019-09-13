@@ -1,5 +1,7 @@
 #include <open62541/config.h>
 #include <open62541/server_config.h>
+#include <open62541/plugin/log_stdout.h>
+#include <include/open62541/types.h>
 #include "basic_types.h"
 
 #define DeviceInformation_padding_vid      offsetof(DeviceInformation,vid) - offsetof(DeviceInformation,type) - sizeof(UA_Int32)
@@ -149,7 +151,7 @@ void
 register_DeviceInformationType_Variable(UA_Server *server, DeviceInformation *di) {
     UA_VariableAttributes attributes = UA_VariableAttributes_default;
     attributes.description = UA_LOCALIZEDTEXT("ru-RU", "Добавленное вручную устройство");
-    attributes.displayName = UA_LOCALIZEDTEXT("ru-RU", "Устройство");
+    attributes.displayName = UA_LOCALIZEDTEXT("ru-RU", "Устройство для провеки");
     attributes.dataType = DeviceInformationType.typeId;
     attributes.valueRank = UA_VALUERANK_SCALAR;
     UA_Variant_setScalar(&attributes.value, di, &DeviceInformationType);
@@ -162,68 +164,197 @@ register_DeviceInformationType_Variable(UA_Server *server, DeviceInformation *di
 }
 
 #if 1
-UA_NodeId pumpTypeId = {1, UA_NODEIDTYPE_NUMERIC, {1001}};
+UA_NodeId DeviceType_id;
+UA_NodeId DeviceType_type_id;
+UA_NodeId DeviceType_USB_id;
+UA_NodeId DeviceType_USB_vid_id;
+UA_NodeId DeviceType_USB_pid_id;
+UA_NodeId DeviceType_manufacturer_id;
+UA_NodeId DeviceType_product_id;
+UA_NodeId DeviceType_serial_id;
+
+UA_NodeId DeviceType_DetectedDevice_id;
+UA_NodeId DeviceType_DetectedDevice_USB_id;
+
+UA_NodeId DeviceType_DetectedDevice_type_id;
+UA_NodeId DeviceType_DetectedDevice_USB_vid_id;
+UA_NodeId DeviceType_DetectedDevice_USB_pid_id;
+UA_NodeId DeviceType_DetectedDevice_manufacturer_id;
+UA_NodeId DeviceType_DetectedDevice_product_id;
+UA_NodeId DeviceType_DetectedDevice_serial_id;
+
+static UA_NodeId find_device_type_id(UA_Server *server, UA_NodeId starting_node, char *search_name) {
+    UA_RelativePathElement rpe;
+    UA_RelativePathElement_init(&rpe);
+    rpe.referenceTypeId = UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY);
+    rpe.isInverse = false;
+    rpe.includeSubtypes = false;
+    rpe.targetName = UA_QUALIFIEDNAME(1, search_name);
+
+    UA_BrowsePath bp;
+    UA_BrowsePath_init(&bp);
+    bp.startingNode = starting_node;
+    bp.relativePath.elementsSize = 1;
+    bp.relativePath.elements = &rpe;
+
+    UA_BrowsePathResult bpr =  UA_Server_translateBrowsePathToNodeIds(server, &bp);
+    if (bpr.statusCode != UA_STATUSCODE_GOOD || bpr.targetsSize < 1) {
+        UA_LOG_ERROR(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "ID %s not found", search_name);
+        return UA_NODEID_NULL;
+    }
+    return bpr.targets[0].targetId.nodeId;
+}
 
 static void
-defineObjectTypes(UA_Server *server) {
-    /* Define the object type for "Device" */
-    UA_NodeId deviceTypeId; /* get the nodeid assigned by the server */
-    UA_ObjectTypeAttributes dtAttr = UA_ObjectTypeAttributes_default;
-    dtAttr.displayName = UA_LOCALIZEDTEXT("en-US", "DeviceType");
+register_object_values(UA_Server *server) {
+    {
+        UA_ObjectAttributes device_attributes = UA_ObjectAttributes_default;
+        device_attributes.displayName = UA_LOCALIZEDTEXT("ru-RU", "Устройство");
+        UA_Server_addObjectNode(server, UA_NODEID_NULL,
+                                UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
+                                UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES),
+                                UA_QUALIFIEDNAME(1, "DetectedDevice"),
+                                DeviceType_id,
+                                device_attributes, NULL, &DeviceType_DetectedDevice_id);
+    }
+    {
+        UA_ObjectAttributes usb_attributes = UA_ObjectAttributes_default;
+        usb_attributes.displayName = UA_LOCALIZEDTEXT("ru-RU", "USB");
+        UA_Server_addObjectNode(server, UA_NODEID_NULL,
+                                DeviceType_DetectedDevice_id,
+                                UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES),
+                                UA_QUALIFIEDNAME(1, "DetectedDevice.USB"),
+                                DeviceType_USB_id,
+                                usb_attributes, NULL, &DeviceType_DetectedDevice_USB_id);
+    }
+
+    {
+        DeviceType_DetectedDevice_type_id = find_device_type_id(server, DeviceType_DetectedDevice_id, "Type");
+        DeviceType_DetectedDevice_manufacturer_id = find_device_type_id(server, DeviceType_DetectedDevice_id, "Manufacturer");
+        DeviceType_DetectedDevice_product_id = find_device_type_id(server, DeviceType_DetectedDevice_id, "Product");
+        DeviceType_DetectedDevice_serial_id = find_device_type_id(server, DeviceType_DetectedDevice_id, "Serial");
+
+        DeviceType_DetectedDevice_USB_vid_id = find_device_type_id(server, DeviceType_DetectedDevice_USB_id, "VID");
+        DeviceType_DetectedDevice_USB_pid_id = find_device_type_id(server, DeviceType_DetectedDevice_USB_id, "PID");
+    }
+}
+
+static void
+register_object_types(UA_Server *server) {
+    UA_ObjectTypeAttributes device_type_attributes = UA_ObjectTypeAttributes_default;
+    device_type_attributes.displayName = UA_LOCALIZEDTEXT("ru-RU", "Устройство");
     UA_Server_addObjectTypeNode(server, UA_NODEID_NULL,
                                 UA_NODEID_NUMERIC(0, UA_NS0ID_BASEOBJECTTYPE),
                                 UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
-                                UA_QUALIFIEDNAME(1, "DeviceType"), dtAttr,
-                                NULL, &deviceTypeId);
+                                UA_QUALIFIEDNAME(1, "DeviceType"), device_type_attributes,
+                                NULL, &DeviceType_id);
 
-    UA_VariableAttributes mnAttr = UA_VariableAttributes_default;
-    mnAttr.displayName = UA_LOCALIZEDTEXT("en-US", "ManufacturerName");
-    UA_NodeId manufacturerNameId;
-    UA_Server_addVariableNode(server, UA_NODEID_NULL, deviceTypeId,
-                              UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
-                              UA_QUALIFIEDNAME(1, "ManufacturerName"),
-                              UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), mnAttr, NULL, &manufacturerNameId);
-    /* Make the manufacturer name mandatory */
-    UA_Server_addReference(server, manufacturerNameId,
-                           UA_NODEID_NUMERIC(0, UA_NS0ID_HASMODELLINGRULE),
-                           UA_EXPANDEDNODEID_NUMERIC(0, UA_NS0ID_MODELLINGRULE_MANDATORY), true);
-
-
-    UA_VariableAttributes modelAttr = UA_VariableAttributes_default;
-    modelAttr.displayName = UA_LOCALIZEDTEXT("en-US", "ModelName");
-    UA_Server_addVariableNode(server, UA_NODEID_NULL, deviceTypeId,
-                              UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
-                              UA_QUALIFIEDNAME(1, "ModelName"),
-                              UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), modelAttr, NULL, NULL);
-
-    /* Define the object type for "Pump" */
-    UA_ObjectTypeAttributes ptAttr = UA_ObjectTypeAttributes_default;
-    ptAttr.displayName = UA_LOCALIZEDTEXT("en-US", "PumpType");
-    UA_Server_addObjectTypeNode(server, pumpTypeId,
-                                deviceTypeId, UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
-                                UA_QUALIFIEDNAME(1, "PumpType"), ptAttr,
-                                NULL, NULL);
-
-    UA_VariableAttributes statusAttr = UA_VariableAttributes_default;
-    statusAttr.displayName = UA_LOCALIZEDTEXT("en-US", "Status");
-    statusAttr.valueRank = UA_VALUERANK_SCALAR;
-    UA_NodeId statusId;
-    UA_Server_addVariableNode(server, UA_NODEID_NULL, pumpTypeId,
-                              UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
-                              UA_QUALIFIEDNAME(1, "Status"),
-                              UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), statusAttr, NULL, &statusId);
-    /* Make the status variable mandatory */
-    UA_Server_addReference(server, statusId,
-                           UA_NODEID_NUMERIC(0, UA_NS0ID_HASMODELLINGRULE),
-                           UA_EXPANDEDNODEID_NUMERIC(0, UA_NS0ID_MODELLINGRULE_MANDATORY), true);
-
-    UA_VariableAttributes rpmAttr = UA_VariableAttributes_default;
-    rpmAttr.displayName = UA_LOCALIZEDTEXT("en-US", "MotorRPM");
-    rpmAttr.valueRank = UA_VALUERANK_SCALAR;
-    UA_Server_addVariableNode(server, UA_NODEID_NULL, pumpTypeId,
-                              UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
-                              UA_QUALIFIEDNAME(1, "MotorRPMs"),
-                              UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), rpmAttr, NULL, NULL);
+    // type
+    {
+        UA_VariableAttributes type_attributes = UA_VariableAttributes_default;
+        type_attributes.displayName = UA_LOCALIZEDTEXT("ru-RU", "Тип устройства");
+        type_attributes.valueRank = UA_VALUERANK_SCALAR;
+        type_attributes.dataType = UA_TYPES[UA_TYPES_INT32].typeId;
+        UA_Server_addVariableNode(server, UA_NODEID_NULL, DeviceType_id,
+                                  UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY),
+                                  UA_QUALIFIEDNAME(1, "Type"),
+                                  UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), type_attributes, NULL,
+                                  &DeviceType_type_id);
+        /* Make the manufacturer name mandatory */
+        UA_Server_addReference(server, DeviceType_type_id,
+                               UA_NODEID_NUMERIC(0, UA_NS0ID_HASMODELLINGRULE),
+                               UA_EXPANDEDNODEID_NUMERIC(0, UA_NS0ID_MODELLINGRULE_MANDATORY), true);
+    }
+    //USB
+    {
+        UA_ObjectTypeAttributes usb_attributes = UA_ObjectTypeAttributes_default;
+        usb_attributes.displayName = UA_LOCALIZEDTEXT("ru-RU", "USB");
+        UA_Server_addObjectTypeNode(server, UA_NODEID_NULL,
+                                    UA_NODEID_NUMERIC(0, UA_NS0ID_BASEOBJECTTYPE),
+                                    UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
+                                    UA_QUALIFIEDNAME(1, "USB"), usb_attributes,
+                                    NULL, &DeviceType_USB_id);
+        // vid
+        {
+            UA_VariableAttributes vid_attributes = UA_VariableAttributes_default;
+            vid_attributes.displayName = UA_LOCALIZEDTEXT("ru-RU", "Идентификатор версии");
+            vid_attributes.valueRank = UA_VALUERANK_SCALAR;
+            vid_attributes.dataType = UA_TYPES[UA_TYPES_INT32].typeId;
+            UA_Server_addVariableNode(server, UA_NODEID_NULL, DeviceType_USB_id,
+                                      UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY),
+                                      UA_QUALIFIEDNAME(1, "VID"),
+                                      UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), vid_attributes, NULL,
+                                      &DeviceType_USB_vid_id);
+            /* Make the vid name mandatory */
+            UA_Server_addReference(server, DeviceType_USB_vid_id,
+                                   UA_NODEID_NUMERIC(0, UA_NS0ID_HASMODELLINGRULE),
+                                   UA_EXPANDEDNODEID_NUMERIC(0, UA_NS0ID_MODELLINGRULE_MANDATORY), true);
+        }
+        // pid
+        {
+            UA_VariableAttributes pid_attributes = UA_VariableAttributes_default;
+            pid_attributes.displayName = UA_LOCALIZEDTEXT("ru-RU", "Идентификатор производителя");
+            pid_attributes.valueRank = UA_VALUERANK_SCALAR;
+            pid_attributes.dataType = UA_TYPES[UA_TYPES_INT32].typeId;
+            UA_Server_addVariableNode(server, UA_NODEID_NULL, DeviceType_USB_id,
+                                      UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY),
+                                      UA_QUALIFIEDNAME(1, "PID"),
+                                      UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), pid_attributes, NULL,
+                                      &DeviceType_USB_pid_id);
+            /* Make the pid name mandatory */
+            UA_Server_addReference(server, DeviceType_USB_pid_id,
+                                   UA_NODEID_NUMERIC(0, UA_NS0ID_HASMODELLINGRULE),
+                                   UA_EXPANDEDNODEID_NUMERIC(0, UA_NS0ID_MODELLINGRULE_MANDATORY), true);
+        }
+    }
+    // manufacturer
+    {
+        UA_VariableAttributes manufacturer_attributes = UA_VariableAttributes_default;
+        manufacturer_attributes.displayName = UA_LOCALIZEDTEXT("ru-RU", "Производитель");
+        manufacturer_attributes.valueRank = UA_VALUERANK_SCALAR;
+        manufacturer_attributes.dataType = UA_TYPES[UA_TYPES_STRING].typeId;
+        UA_Server_addVariableNode(server, UA_NODEID_NULL, DeviceType_id,
+                                  UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY),
+                                  UA_QUALIFIEDNAME(1, "Manufacturer"),
+                                  UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), manufacturer_attributes, NULL,
+                                  &DeviceType_manufacturer_id);
+        /* Make the manufacturer name mandatory */
+        UA_Server_addReference(server, DeviceType_manufacturer_id,
+                               UA_NODEID_NUMERIC(0, UA_NS0ID_HASMODELLINGRULE),
+                               UA_EXPANDEDNODEID_NUMERIC(0, UA_NS0ID_MODELLINGRULE_MANDATORY), true);
+    }
+    // product
+    {
+        UA_VariableAttributes product_attributes = UA_VariableAttributes_default;
+        product_attributes.displayName = UA_LOCALIZEDTEXT("ru-RU", "Модель");
+        product_attributes.valueRank = UA_VALUERANK_SCALAR;
+        product_attributes.dataType = UA_TYPES[UA_TYPES_STRING].typeId;
+        UA_Server_addVariableNode(server, UA_NODEID_NULL, DeviceType_id,
+                                  UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY),
+                                  UA_QUALIFIEDNAME(1, "Product"),
+                                  UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), product_attributes, NULL,
+                                  &DeviceType_product_id);
+        /* Make the product name mandatory */
+        UA_Server_addReference(server, DeviceType_product_id,
+                               UA_NODEID_NUMERIC(0, UA_NS0ID_HASMODELLINGRULE),
+                               UA_EXPANDEDNODEID_NUMERIC(0, UA_NS0ID_MODELLINGRULE_MANDATORY), true);
+    }
+    // serial
+    {
+        UA_VariableAttributes serial_attributes = UA_VariableAttributes_default;
+        serial_attributes.displayName = UA_LOCALIZEDTEXT("ru-RU", "Серийный номер");
+        serial_attributes.valueRank = UA_VALUERANK_SCALAR;
+        serial_attributes.dataType = UA_TYPES[UA_TYPES_STRING].typeId;
+        UA_Server_addVariableNode(server, UA_NODEID_NULL, DeviceType_id,
+                                  UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY),
+                                  UA_QUALIFIEDNAME(1, "Serial"),
+                                  UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), serial_attributes, NULL,
+                                  &DeviceType_serial_id);
+        /* Make the serial name mandatory */
+        UA_Server_addReference(server, DeviceType_serial_id,
+                               UA_NODEID_NUMERIC(0, UA_NS0ID_HASMODELLINGRULE),
+                               UA_EXPANDEDNODEID_NUMERIC(0, UA_NS0ID_MODELLINGRULE_MANDATORY), true);
+    }
 }
 
 #endif
@@ -244,7 +375,8 @@ bool register_builtin_types(UA_Server *server) {
     config->customDataTypes = &array_of_types;
     register_DeviceInformationType(server);
     register_SignalEventType(server);
-    defineObjectTypes(server);
+    register_object_types(server);
+    register_object_values(server);
     return true;
 }
 

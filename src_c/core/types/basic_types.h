@@ -40,6 +40,24 @@ typedef struct {
 extern UA_DataTypeMember SignalEvent_members[8];
 extern const UA_DataType SignalEventType;
 
+extern UA_NodeId DeviceType_id;
+extern UA_NodeId DeviceType_type_id;
+extern UA_NodeId DeviceType_USB_id;
+extern UA_NodeId DeviceType_USB_vid_id;
+extern UA_NodeId DeviceType_USB_pid_id;
+extern UA_NodeId DeviceType_manufacturer_id;
+extern UA_NodeId DeviceType_product_id;
+extern UA_NodeId DeviceType_serial_id;
+extern UA_NodeId DeviceType_DetectedDevice_id;
+extern UA_NodeId DeviceType_DetectedDevice_USB_id;
+
+extern UA_NodeId DeviceType_DetectedDevice_type_id;
+extern UA_NodeId DeviceType_DetectedDevice_USB_vid_id;
+extern UA_NodeId DeviceType_DetectedDevice_USB_pid_id;
+extern UA_NodeId DeviceType_DetectedDevice_manufacturer_id;
+extern UA_NodeId DeviceType_DetectedDevice_product_id;
+extern UA_NodeId DeviceType_DetectedDevice_serial_id;
+
 bool register_builtin_types(UA_Server *server);
 
 #if defined(__cplusplus)
