@@ -2,7 +2,7 @@
 #include <open62541/plugin/log_stdout.h>
 #include <types/basic_types.h>
 #include <hidapi.h>
-#include "monitoring.h"
+#include "controller.h"
 #include "multithreading.h"
 
 static volatile bool monitoring_enabled = false;
@@ -103,7 +103,7 @@ void monitoring_reset_device_information(UA_Server *server) {
     UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Device lost");
 }
 
-bool monitoring_registration(UA_Server *server) {
+bool controller_registration(UA_Server *server) {
     if (monitoring_enabled == false) {
         monitoring_enabled = hid_init() == 0 &&
                              UA_Server_addRepeatedCallback(server, monitoring_callback, NULL, 500, NULL)
@@ -112,7 +112,7 @@ bool monitoring_registration(UA_Server *server) {
     return monitoring_enabled;
 }
 
-bool monitoring_send(UA_Server *server, const unsigned char *data, size_t data_length) {
+bool controller_send(UA_Server *server, const unsigned char *data, size_t data_length) {
     int res;
 
     if (handle == NULL)
@@ -125,7 +125,7 @@ bool monitoring_send(UA_Server *server, const unsigned char *data, size_t data_l
     return res == data_length;
 }
 
-bool monitoring_reset(UA_Server *server) {
+bool controller_reset(UA_Server *server) {
     handle = NULL;
     detected = false;
     return true;

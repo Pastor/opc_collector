@@ -8,7 +8,7 @@
 #include <open62541/client_config_default.h>
 #include <open62541/client_highlevel.h>
 #include "types/basic_types.h"
-#include "device/monitoring.h"
+#include "device/controller.h"
 #include "device/function.h"
 
 #include "default_server.h"
@@ -28,7 +28,7 @@ static void *monitoring_loop(void *args) {
     UA_ServerConfig *config = UA_Server_getConfig(_server);
     UA_ServerConfig_setMinimal(config, 6789, NULL);
     register_builtin_types(_server);
-    monitoring_registration(_server);
+    controller_registration(_server);
     function_registration(_server);
     register_DeviceInformationType_Variable(_server, &gdi);
     if (UA_Server_run(_server, &_running) == UA_STATUSCODE_GOOD) {

@@ -7,7 +7,7 @@ add_library(core STATIC
         multithreading.c
         multithreading.h
         types/basic_types.c types/basic_types.h
-        device/monitoring.c device/monitoring.h
+        device/controller.c device/controller.h
         device/function.c device/function.h)
 if (CMAKE_COMPILER_IS_GNUCXX)
     set_target_properties(core PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations -g -fPIC")

@@ -5,7 +5,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <types/basic_types.h>
-#include "monitoring.h"
+#include "controller.h"
 #include "function.h"
 
 static UA_StatusCode
@@ -18,7 +18,7 @@ method_device_send_callback(UA_Server *server,
 
     UA_String *data = (UA_String *) input[0].data;
     UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Send %.*s", (int) data->length, data->data);
-    return monitoring_send(server, data->data, data->length) ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADDATALOST;
+    return controller_send(server, data->data, data->length) ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADDATALOST;
 }
 
 static UA_StatusCode
@@ -30,7 +30,7 @@ method_device_reset_callback(UA_Server *server,
                              size_t outputSize, UA_Variant *output) {
 
     UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Reset device");
-    return monitoring_reset(server) ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADDATALOST;
+    return controller_reset(server) ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADDATALOST;
 }
 
 static void
