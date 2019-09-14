@@ -10,11 +10,11 @@
 
 static UA_StatusCode
 method_device_send_callback(UA_Server *server,
-                            const UA_NodeId *sessionId, void *sessionHandle,
-                            const UA_NodeId *methodId, void *methodContext,
-                            const UA_NodeId *objectId, void *objectContext,
-                            size_t inputSize, const UA_Variant *input,
-                            size_t outputSize, UA_Variant *output) {
+                            const UA_NodeId *session_id, void *session_handle,
+                            const UA_NodeId *method_id, void *method_context,
+                            const UA_NodeId *object_id, void *object_context,
+                            size_t input_size, const UA_Variant *input,
+                            size_t output_size, UA_Variant *output) {
 
     UA_String *data = (UA_String *) input[0].data;
     UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Send %.*s", (int) data->length, data->data);
@@ -23,11 +23,11 @@ method_device_send_callback(UA_Server *server,
 
 static UA_StatusCode
 method_device_reset_callback(UA_Server *server,
-                             const UA_NodeId *sessionId, void *sessionHandle,
-                             const UA_NodeId *methodId, void *methodContext,
-                             const UA_NodeId *objectId, void *objectContext,
-                             size_t inputSize, const UA_Variant *input,
-                             size_t outputSize, UA_Variant *output) {
+                             const UA_NodeId *session_id, void *session_handle,
+                             const UA_NodeId *method_id, void *method_context,
+                             const UA_NodeId *object_id, void *object_context,
+                             size_t input_size, const UA_Variant *input,
+                             size_t output_size, UA_Variant *output) {
 
     UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Reset device");
     return controller_reset(server) ? UA_STATUSCODE_GOOD : UA_STATUSCODE_BADDATALOST;

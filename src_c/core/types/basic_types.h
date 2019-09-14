@@ -58,6 +58,9 @@ extern UA_NodeId DeviceType_DetectedDevice_manufacturer_id;
 extern UA_NodeId DeviceType_DetectedDevice_product_id;
 extern UA_NodeId DeviceType_DetectedDevice_serial_id;
 
+extern UA_NodeId SignalEventType_id;
+
+bool trigger_SignalEvent(UA_Server *server, SignalEvent event);
 bool register_builtin_types(UA_Server *server);
 
 #if defined(__cplusplus)

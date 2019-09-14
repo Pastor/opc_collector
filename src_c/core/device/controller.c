@@ -10,11 +10,12 @@ static volatile hid_device *handle = NULL;
 static volatile bool detected = false;
 static void *busy = NULL;
 
-static unsigned char buf[1024];
-static size_t buf_length = sizeof(buf);
+static unsigned char buf[1024] = {0};
 static size_t buf_read = 0;
 
 void monitoring_reset_device_information(UA_Server *server);
+
+void buf_clean();
 
 bool monitoring_has_device() {
     return handle != NULL;
@@ -35,7 +36,10 @@ static void write_id_number(UA_Server *server, UA_NodeId id, UA_Int32 number) {
 static void
 monitoring_callback(UA_Server *server, void *data) {
     if (handle != NULL) {
-        int res = hid_read((hid_device *) handle, buf + buf_read, sizeof(buf));
+        int res;
+
+        next_read:
+        res = hid_read((hid_device *) handle, buf + buf_read, sizeof(buf));
         if (res < 0) {
             hid_close((hid_device *) handle);
             handle = NULL;
@@ -44,12 +48,32 @@ monitoring_callback(UA_Server *server, void *data) {
             buf_read = buf_read + res;
             if (buf_read >= sizeof(buf)) {
                 UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Device buffer overflow");
-                buf_read = 0;
+                buf_clean();
             }
-        } else {
-            return;
+            goto next_read;
         }
     }
+
+    if (buf_read > 0) {
+        SignalEvent event = {
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0, 0,
+                0, 0
+        };
+
+        UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Read: %.*s", (int) buf_read, buf);
+        trigger_SignalEvent(server, event);
+        buf_clean();
+    }
+
+    if (handle != NULL)
+        return;
+
     handle = hid_open(0x10c4, 0x8468, NULL);
     if (handle == NULL) {
         if (detected) {
@@ -106,7 +130,7 @@ void monitoring_reset_device_information(UA_Server *server) {
 bool controller_registration(UA_Server *server) {
     if (monitoring_enabled == false) {
         monitoring_enabled = hid_init() == 0 &&
-                             UA_Server_addRepeatedCallback(server, monitoring_callback, NULL, 500, NULL)
+                             UA_Server_addRepeatedCallback(server, monitoring_callback, NULL, 50, NULL)
                              == UA_STATUSCODE_GOOD;
     }
     return monitoring_enabled;
@@ -129,5 +153,10 @@ bool controller_reset(UA_Server *server) {
     handle = NULL;
     detected = false;
     return true;
+}
+
+void buf_clean() {
+    memset(buf, 0, sizeof(buf));
+    buf_read = 0;
 }
 

@@ -14,36 +14,30 @@
 #include "default_server.h"
 #include "multithreading.h"
 
-static UA_Boolean _running = true;
-static UA_Server *_server;
-
-void register_DeviceInformationType_Variable(UA_Server *server, DeviceInformation *di);
+volatile UA_Boolean _default_server_running = false;
+UA_Server *_default_server;
 
 static void *monitoring_loop(void *args) {
-    DeviceInformation gdi = {
-            UA_DEVICE_TYPE_HID, 0, 0,
-            UA_STRING(UA_CLIENT_DEFAULT_DEVICE_SERIAL),
-            UA_STRING(UA_CLIENT_DEFAULT_DEVICE_PRODUCT), 0
-    };
-    UA_ServerConfig *config = UA_Server_getConfig(_server);
+
+    UA_ServerConfig *config = UA_Server_getConfig(_default_server);
     UA_ServerConfig_setMinimal(config, 6789, NULL);
-    register_builtin_types(_server);
-    controller_registration(_server);
-    function_registration(_server);
-    register_DeviceInformationType_Variable(_server, &gdi);
-    if (UA_Server_run(_server, &_running) == UA_STATUSCODE_GOOD) {
+    register_builtin_types(_default_server);
+    controller_registration(_default_server);
+    function_registration(_default_server);
+    _default_server_running = true;
+    if (UA_Server_run(_default_server, &_default_server_running) == UA_STATUSCODE_GOOD) {
         u_delay(1000);
-        UA_Server_delete(_server);
-        _server = NULL;
+        UA_Server_delete(_default_server);
+        _default_server = NULL;
     }
     return NULL;
 }
 
 void default_server_start() {
-    _server = UA_Server_new();
-    thread_create(monitoring_loop, _server, true);
+    _default_server = UA_Server_new();
+    thread_create(monitoring_loop, _default_server, true);
 }
 
 void default_server_stop() {
-    _running = false;
+    _default_server_running = false;
 }
