@@ -49,14 +49,14 @@ TEST(Signal_NullPtr, Unlock) {
     volatile void *null = nullptr;
 
     signal_unlock(nullptr);
-    signal_unlock(&null);
+    signal_unlock(null);
 }
 
 TEST(Signal_NullPtr, Do) {
     volatile void *null = nullptr;
 
     signal_do(nullptr);
-    signal_do(&null);
+    signal_do(null);
 }
 
 TEST(Signal_NullPtr, Try_Lock) {
@@ -94,7 +94,7 @@ TEST(Busy_NullPtr, Init) {
 TEST(Busy_NullPtr, Unlock) {
     volatile void *null = nullptr;
     busy_unlock(nullptr);
-    busy_unlock(&null);
+    busy_unlock(null);
 }
 
 TEST(Busy_NullPtr, Destroy) {
