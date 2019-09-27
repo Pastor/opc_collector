@@ -14,6 +14,7 @@ elseif (APPLE)
     set(LIBRARIES ${CoreFoundation} ${IOKit})
 else ()
     set(SOURCES hid_linux.c)
+    set(LIBRARIES udev)
 endif ()
 
 add_library(hidapi STATIC ${SOURCES})

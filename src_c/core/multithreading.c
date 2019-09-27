@@ -15,6 +15,7 @@ struct Event {
 #include <unistd.h>
 #include <time.h>
 #include <pthread.h>
+#include <signal.h>
 
 struct Event {
     pthread_cond_t cond;
